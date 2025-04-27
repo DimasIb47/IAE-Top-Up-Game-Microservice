@@ -10,17 +10,16 @@ use Illuminate\Support\Facades\Http;
 
 class TransactionController extends Controller
 {
-
     public function create()
     {
         try {
             $usersResponse = Http::get('http://127.0.0.1:8001/api/users');
             $gamesResponse = Http::get('http://127.0.0.1:8002/api/games');
-    
+
             // Convert responses to arrays
             $users = $usersResponse->successful() ? json_decode($usersResponse->body(), true) : [];
             $games = $gamesResponse->successful() ? json_decode($gamesResponse->body(), true) : [];
-    
+
             return view('create', [
                 'users' => $users,
                 'games' => $games
@@ -44,20 +43,20 @@ class TransactionController extends Controller
             'topup_option' => 'required|string',
             'price' => 'required|numeric'
         ]);
-    
+
         try {
-            // Verify user exists
-            $userExists = Http::get('http://127.0.0.1:8001/api/users/'.$request->user_id)->successful();
-            $gameExists = Http::get('http://127.0.0.1:8002/api/games/'.$request->game_id)->successful();
-    
+            // Verify user and game exist
+            $userExists = Http::get('http://127.0.0.1:8001/api/users/' . $request->user_id)->successful();
+            $gameExists = Http::get('http://127.0.0.1:8002/api/games/' . $request->game_id)->successful();
+
             if (!$userExists) {
                 return back()->withErrors(['user_id' => 'User not found'])->withInput();
             }
-    
+
             if (!$gameExists) {
                 return back()->withErrors(['game_id' => 'Game not found'])->withInput();
             }
-    
+
             // Save transaction
             $transaction = new Transaction();
             $transaction->user_id = $request->user_id;
@@ -67,10 +66,38 @@ class TransactionController extends Controller
             $transaction->price = $request->price;
             $transaction->status = 'pending';
             $transaction->save();
-    
-            return redirect()->route('home')->with('success', 'Transaksi berhasil');
+
+            // Redirect ke halaman sukses
+            return redirect()->route('transactions.success');
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Terjadi kesalahan: '.$e->getMessage()])->withInput();
+            return back()->withErrors(['error' => 'Terjadi kesalahan: ' . $e->getMessage()])->withInput();
         }
+    }
+
+    public function history(Request $request)
+    {
+        $query = Transaction::query();
+
+        if ($request->sort == 'price') {
+            $query->orderBy('price', 'asc');
+        } elseif ($request->sort == 'price_desc') {
+            $query->orderBy('price', 'desc');
+        } elseif ($request->sort == 'latest') {
+            $query->orderBy('created_at', 'desc');
+        } elseif ($request->sort == 'oldest') {
+            $query->orderBy('created_at', 'asc');
+        } else {
+            $query->orderBy('created_at', 'desc'); // default
+        }
+
+        $transactions = $query->get();
+
+        return view('transactions.history', compact('transactions'));
+    }
+
+    // Tambahan: halaman sukses
+    public function success()
+    {
+        return view('transactions.success');
     }
 }
