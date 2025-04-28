@@ -350,6 +350,38 @@ Saat mengakses halaman form, Transaction Service mengonsumsi API User Service da
 
 ##### a. Menyediakan Data Transaksi Berdasarkan User
 ```php
+    public function getUserTransactionAPI($id)
+    {
+        // Ambil data user dari database
+        $user = User::find($id);
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User tidak ditemukan'
+            ], 404);
+        }
+    
+        // Panggil TransactionService
+        $response = Http::get("http://127.0.0.1:8003/api/transactions/user/{$id}");
+        
+        if ($response->successful()) {
+            return response()->json([
+                'success' => true,
+                'user_id' => $id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone_number' => $user->phone_number,
+                'transactions' => $response->json()['data']
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mengambil history transaksi'
+        ], 500);
+    }
+
     public function getUserTransactions($id)
     {
         $user = User::findOrFail($id);
@@ -375,6 +407,41 @@ User Service sebagai consumer dapat memanggil endpoint ini (http://127.0.0.1:800
 
 ##### b. Menyediakan Data Transaksi dan Revenue Berdasarkan Game
 ```php
+    public function getGameTransactionsAPI($id)
+    {
+        // Ambil data game dari database
+        $game = Game::find($id);
+        
+        if (!$game) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Game tidak ditemukan'
+            ], 404);
+        }
+    
+        // Panggil TransactionService
+        $response = Http::get("http://127.0.0.1:8003/api/transactions/game/{$id}");
+        
+        if ($response->successful()) {
+            $transactions = $response->json();
+            
+            return response()->json([
+                'success' => true,
+                'game_id' => $id,
+                'game_name' => $game->name,
+                'description' => $game->description,
+                'topup_options' => $game->topup_options,
+                'transactions' => $transactions
+                
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mengambil transaksi game'
+        ], 500);
+    }
+
     public function getGameTransactions($id)
     {
         $game = Game::findOrFail($id);
