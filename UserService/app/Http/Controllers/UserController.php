@@ -8,7 +8,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class UserController extends Controller
 {
-    public function index()
+    public function apiindex()
     {
         return response()->json(User::all());
     }
@@ -33,7 +33,7 @@ class UserController extends Controller
         return response()->json($user, 201);
     }
 
-    public function getUserTransactionHistory($id)
+    public function getUserTransactionAPI($id)
     {
         // Ambil data user dari database
         $user = User::find($id);
@@ -63,6 +63,41 @@ class UserController extends Controller
             'success' => false,
             'message' => 'Gagal mengambil history transaksi'
         ], 500);
+    }
+
+    public function index(Request $request)
+    {
+        $search = $request->query('search');
+    
+        $users = User::when($search, function($query) use ($search) {
+            return $query->where('id', 'like', "%{$search}%")
+                        ->orWhere('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+        })->paginate(10);
+    
+        // Pastikan menggunakan compact() atau array asosiatif
+        return view('users.index', ['users' => $users, 'search' => $search]);
+    }
+
+    public function getUserTransactions($id)
+    {
+        $user = User::findOrFail($id);
+        
+        try {
+            $response = Http::get("http://127.0.0.1:8003/api/transactions/user/{$id}");
+            
+            if ($response->successful()) {
+                return view('users.transactions', [
+                    'user' => $user,
+                    'transactions' => $response->json()['data'] ?? []
+                ]);
+            }
+            
+            return back()->with('error', 'Gagal mengambil data transaksi');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error: ' . $e->getMessage());
+        }
     }
 
 
