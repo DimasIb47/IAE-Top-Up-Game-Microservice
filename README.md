@@ -341,8 +341,28 @@ Transaction Service memanggil Game Service untuk memverifikasi keberadaan game_i
 
 ##### c. Konsumsi List Data untuk Formulir Create
 ```php
-$usersResponse = Http::get('http://127.0.0.1:8001/api/users');
-$gamesResponse = Http::get('http://127.0.0.1:8002/api/games');
+    public function create()
+    {
+        try {
+            $usersResponse = Http::get('http://127.0.0.1:8001/api/users');
+            $gamesResponse = Http::get('http://127.0.0.1:8002/api/games');
+
+            // Convert responses to arrays
+            $users = $usersResponse->successful() ? json_decode($usersResponse->body(), true) : [];
+            $games = $gamesResponse->successful() ? json_decode($gamesResponse->body(), true) : [];
+
+            return view('create', [
+                'users' => $users,
+                'games' => $games
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching data: ' . $e->getMessage());
+            return view('create', [
+                'users' => [],
+                'games' => []
+            ]);
+        }
+    }
 ```
 Saat mengakses halaman form, Transaction Service mengonsumsi API User Service dan Game Service untuk mengambil seluruh daftar user dan game.
 
