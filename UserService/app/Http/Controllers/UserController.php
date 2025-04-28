@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Http;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\HasApiTokens;
@@ -31,4 +32,38 @@ class UserController extends Controller
 
         return response()->json($user, 201);
     }
+
+    public function getUserTransactionHistory($id)
+    {
+        // Ambil data user dari database
+        $user = User::find($id);
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User tidak ditemukan'
+            ], 404);
+        }
+    
+        // Panggil TransactionService
+        $response = Http::get("http://127.0.0.1:8003/api/transactions/user/{$id}");
+        
+        if ($response->successful()) {
+            return response()->json([
+                'success' => true,
+                'user_id' => $id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone_number' => $user->phone_number,
+                'transactions' => $response->json()['data']
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mengambil history transaksi'
+        ], 500);
+    }
+
+
 }

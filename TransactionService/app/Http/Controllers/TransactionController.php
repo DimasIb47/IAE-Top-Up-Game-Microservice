@@ -10,6 +10,39 @@ use Illuminate\Support\Facades\Http;
 
 class TransactionController extends Controller
 {
+    /**
+     * Menampilkan semua transaksi (GET /transactions)
+     */
+    public function index()
+    {
+        $transactions = Transaction::all();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $transactions
+        ], 200);
+    }
+
+     /**
+     * Menampilkan detail transaksi (GET /transactions/{id})
+     */
+    public function show($id)
+    {
+        $transaction = Transaction::find($id);
+
+        if (!$transaction) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaksi tidak ditemukan'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $transaction
+        ], 200);
+    }
+
     public function create()
     {
         try {
@@ -100,4 +133,33 @@ class TransactionController extends Controller
     {
         return view('transactions.success');
     }
+
+        /**
+     * Get all transactions by user_id (untuk UserService)
+     */
+    public function getUserTransactions($user_id)
+    {
+        $transactions = Transaction::where('user_id', $user_id)->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $transactions
+        ]);
+    }
+
+    /**
+     * Get all transactions by game_id (untuk GameService)
+     */
+    public function getGameTransactions($game_id)
+    {
+        $transactions = Transaction::where('game_id', $game_id)->get();
+        $totalRevenue = $transactions->sum('price');
+        
+        return response()->json([
+            'success' => true,
+            'total_revenue' => $totalRevenue,
+            'transactions' => $transactions
+        ]);
+}
+    
 }
